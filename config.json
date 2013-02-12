@@ -2,11 +2,6 @@
   "mongo": {
     "uri": "mongodb://localhost/latitudescraper"
   },
-  "google": {
-    "appId": "872355622041.apps.googleusercontent.com",
-    "appSecret": "kNvcLx0783d8tVn1_5MWpfvh",
-    "callbackURI": "http://localhost:3000/auth/google/callback"
-  },
   "session": {
     "secret": "SOEMSECRT"
   }

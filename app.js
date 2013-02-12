@@ -1,6 +1,7 @@
 var passport = require('passport');
 var GoogleStrategy = require('passport-google-oauth').OAuth2Strategy;
 var config = require('./config.json');
+var google = require('./google.json');
 var http = require('http');
 var express = require('express');
 var restler = require('restler');
@@ -31,12 +32,9 @@ passport.deserializeUser(function(obj, done) {
 
 passport.use(new GoogleStrategy({
   clientID: config.google.appId,
-  clientSecret: config.google.appSecret,
-  callbackURL: config.google.callbackURI
+  clientSecret: google.appSecret,
+  callbackURL: google.callbackURI
   }, function(accessToken, refreshToken, profile, done) {
-    console.log('accessToken = ' + accessToken);
-    console.log('refreshToken = ' + refreshToken);
-    console.log('profile = ' + JSON.stringify(profile));
     profile.accessToken = accessToken;
     return done(null, profile);
 }));
@@ -50,7 +48,6 @@ app.get('/auth/google/callback',
    passport.authenticate('google', { failureRedirect: '/googleFail' }),
    function(req, res) {
       return res.redirect('/getKML');
-
 });
 
 app.get('/auth/google',
@@ -66,10 +63,40 @@ app.get('/', function(req, res) {
 });
 
 app.get('/getKML', function(req, res) {
-  console.log('session accessToken = ' + req.session.accessToken);
-
-  return res.json(req.user);
+  getKML(req.user.accessToken, function(locations) {
+    console.log('getKML done function locations.length = ' + locations.length);
+    var outString = "";
+    for (var i = 0; i < locations.length; i++) {
+      outString += 'locations[' + i + '].timestampMs = ' + locations[i].timestampMs + '\n';
+    }
+    return res.send(outString);
+  });
 });
+
+// Time goes from now to past the higher the index of locations
+function getKML(accessToken, done, maxTime, locations) {
+  console.log('in getKML');
+  if (!locations) { locations = []; }
+  if (!maxTime) { maxTime = new Date().getTime(); }
+  console.log('maxTime = ' + maxTime);
+  restler.get('https://www.googleapis.com/latitude/v1/location?max-results=1000&max-time=' + maxTime + '&access_token=' + accessToken).on('success', function(data, gRes) {
+    console.log('req to Latitude complete');
+    console.log('data.data.items.length = ' + data.data.items.length);
+    if (data.data && data.data.items) {
+      newMaxTime = data.data.items[data.data.items.length - 1].timestampMs;
+      locations = locations.concat(data.data.items);
+      console.log('locations.length = ' + locations.length);
+      if (maxTime == newMaxTime) {
+        console.log('maxTime == newMaxTime');
+        return done(locations);
+      }
+      getKML(accessToken, done, newMaxTime, locations);
+    } else {
+      console.log('done with recursion');
+      return done(locations);
+    }
+  });
+}
 
 server = http.createServer(app);
 server.listen(app.get('port'));
