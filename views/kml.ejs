@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2" xmlns:kml="http://www.opengis.net/kml/2.2" xmlns:atom="http://www.w3.org/2005/Atom">
+<Document>
+<name>Location history</name>
+<open>1</open>
+<description/>
+<StyleMap id="multiTrack">
+<Pair>
+<key>normal</key>
+<styleUrl>#multiTrack_n</styleUrl>
+</Pair>
+<Pair>
+<key>highlight</key>
+<styleUrl>#multiTrack_h</styleUrl>
+</Pair>
+</StyleMap>
+<Style id="multiTrack_n">
+<IconStyle>
+<Icon>
+<href>http://earth.google.com/images/kml-icons/track-directional/track-0.png</href>
+</Icon>
+</IconStyle>
+<LineStyle>
+<color>99ffac59</color>
+<width>6</width>
+</LineStyle>
+</Style>
+<Style id="multiTrack_h">
+<IconStyle>
+<scale>1.2</scale>
+<Icon>
+<href>http://earth.google.com/images/kml-icons/track-directional/track-0.png</href>
+</Icon>
+</IconStyle>
+<LineStyle>
+<color>99ffac59</color>
+<width>8</width>
+</LineStyle>
+</Style>
+<Placemark>
+<name>Latitude User</name>
+<description>Location history for Latitude User from 02/12/2013 to 02/13/2013</description>
+<styleUrl>#multiTrack</styleUrl>
+<gx:Track>
+  <altitudeMode>clampToGround</altitudeMode><% for (var i = 0; i < locations.length ; i++) { %><% if (locations[i].timestampMs > 0) { %>
+  <when><%= new Date(Math.floor(locations[i].timestampMs)).toISOString().replace(/T/, ' ').replace(/\..+/, '') %></when>
+  <gx:coord><%= locations[i].longitude %> <%= locations[i].latitude %> 0</gx:coord>
+  <% }} %>
+</gx:Track>
+</Placemark>
+</Document>
+</kml>
