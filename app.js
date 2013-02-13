@@ -1,3 +1,4 @@
+  //<when><%= new Date(locations[i].timestampMs).toISOString().replace(/T/, ' ').replace(/\..+/, '') %></when>
 var passport = require('passport');
 var GoogleStrategy = require('passport-google-oauth').OAuth2Strategy;
 var config = require('./config.json');
@@ -5,6 +6,9 @@ var google = require('./google.json');
 var http = require('http');
 var express = require('express');
 var restler = require('restler');
+var path = require('path');
+var fs = require('fs');
+var ejs = require('ejs');
 
 var app = express();
 
@@ -19,6 +23,7 @@ app.configure(function() {
   app.use(passport.initialize());
   app.use(passport.session());
   app.use(app.router);
+  app.use(express.static(path.join(__dirname, 'public')));
   app.set('port', process.env.PORT || 3000);
 });
 
@@ -31,7 +36,7 @@ passport.deserializeUser(function(obj, done) {
 });
 
 passport.use(new GoogleStrategy({
-  clientID: config.google.appId,
+  clientID: google.appId,
   clientSecret: google.appSecret,
   callbackURL: google.callbackURI
   }, function(accessToken, refreshToken, profile, done) {
@@ -64,12 +69,30 @@ app.get('/', function(req, res) {
 
 app.get('/getKML', function(req, res) {
   getKML(req.user.accessToken, function(locations) {
+    console.log('in /getKML callback');
+    /*
     console.log('getKML done function locations.length = ' + locations.length);
     var outString = "";
     for (var i = 0; i < locations.length; i++) {
-      outString += 'locations[' + i + '].timestampMs = ' + locations[i].timestampMs + '\n';
+      outString += 'locations[' + i + ']  ' + JSON.stringify(locations[i]) + '\n';
     }
     return res.send(outString);
+    */
+    //return res.render('kml', {"locations": locations});
+    fs.readFile('./views/kml.ejs', 'utf-8', function(err, data) {
+        console.log('reading kml template err ' + err);
+        if(!err) {
+            templateString = data;
+        }
+        var outputString = ejs.render(templateString, {"locations": locations});
+        var rightNow = new Date().getTime();
+        fs.writeFile('./public/' + rightNow + '.kml', outputString, function(err) {
+          console.log('writing kml file');
+          if (!err) {
+            return res.send(rightNow + '.kml');
+          }
+        });
+    });
   });
 });
 
@@ -77,6 +100,10 @@ app.get('/getKML', function(req, res) {
 function getKML(accessToken, done, maxTime, locations) {
   console.log('in getKML');
   if (!locations) { locations = []; }
+  
+  // @TODO remove this temporary stop condition
+//  if (locations.length > 20000) { return done(locations); }
+
   if (!maxTime) { maxTime = new Date().getTime(); }
   console.log('maxTime = ' + maxTime);
   restler.get('https://www.googleapis.com/latitude/v1/location?max-results=1000&max-time=' + maxTime + '&access_token=' + accessToken).on('success', function(data, gRes) {

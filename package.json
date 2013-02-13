@@ -11,7 +11,9 @@
     "connect": "*",
     "passport": "*",
     "redis": "*",
+    "path": "*",
     "restler": "*",
+    "ejs": "*",
     "passport-google-oauth": "*"
   }
 }
