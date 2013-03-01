@@ -10,6 +10,7 @@
     "connect-ensure-login": "*",
     "connect": "*",
     "passport": "*",
+    "mongoose": "*",
     "redis": "*",
     "path": "*",
     "restler": "*",
