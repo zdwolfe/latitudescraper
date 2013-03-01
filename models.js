@@ -1,6 +1,6 @@
 exports.configure = function(db) {
   var UserSchema = new db.Schema({
-    "name": String,
+    "email": String,
     "googleAccessToken": String,
     "done": {
       "type": Boolean,
@@ -10,10 +10,11 @@ exports.configure = function(db) {
   exports.User = db.model('User', UserSchema);
 
   var LocationSchema = new db.Schema({
-    "userId": String,
+    "kind": String,
+    "email": String,
     "timestampMs": String,
     "longitude": String,
     "latitude": String
   });
-  exports.Location = new db.model('Location', LocationSchema);
+  exports.Location = db.model('Location', LocationSchema);
 }

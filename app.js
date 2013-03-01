@@ -1,11 +1,9 @@
-  //<when><%= new Date(locations[i].timestampMs).toISOString().replace(/T/, ' ').replace(/\..+/, '') %></when>
 var passport = require('passport');
 var GoogleStrategy = require('passport-google-oauth').OAuth2Strategy;
 var config = require('./config.json');
 var google = require('./google.json');
 var http = require('http');
 var express = require('express');
-var restler = require('restler');
 var path = require('path');
 var fs = require('fs');
 var ejs = require('ejs');
@@ -32,7 +30,6 @@ app.configure(function() {
 
 mongoose.connect(config.mongo.uri);
 models.configure(mongoose);
-worker.configure(mongoose);
 
 passport.serializeUser(function(user, done) {
     done(null, user);
@@ -48,7 +45,22 @@ passport.use(new GoogleStrategy({
   callbackURL: google.callbackURI
   }, function(accessToken, refreshToken, profile, done) {
     profile.accessToken = accessToken;
-    return done(null, profile);
+    var email = profile.emails.length ? profile.emails[0].value : "noemailpresent";
+    models.User.findOne({"email": email}).exec(function(err, user) {
+      if (err) { return done(err); }
+      if (!user) {
+        var newUser = models.User({
+          "email": email,
+          "googleAccessToken": accessToken
+        });
+        newUser.save(function(err) {
+          if (err) { return done(err); }
+          return done(null, profile);
+        });
+      } else {
+        return done(null, profile);
+      }
+    });
 }));
 
 app.get('/auth/logout', function(req, res) { 
@@ -77,7 +89,7 @@ app.get('/', function(req, res) {
 app.get('/getKML', function(req, res) {
   // present the user with a hash or something
   // or email the user
-  getKML(req.user.accessToken, function(locations) {
+  worker.getKML(req.user.accessToken, function(locations) {
     console.log('in /getKML callback');
     /*
     console.log('getKML done function locations.length = ' + locations.length);
@@ -103,7 +115,11 @@ app.get('/getKML', function(req, res) {
         });
     });
   });
+  return res.render('email', {user: req.user});
 });
+
+worker.query();
+setInterval(worker.query, 5*60*1000);
 
 server = http.createServer(app);
 server.listen(app.get('port'));
